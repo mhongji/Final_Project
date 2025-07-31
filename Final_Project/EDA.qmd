@@ -1,0 +1,192 @@
+---
+title: "EDA"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(here)
+
+# load data via relative path
+diabetes <- read_csv(here("data","diabetes_binary_health_indicators_BRFSS2015.csv"))
+
+glimpse(diabetes)
+# convert binaries → factors
+binary_cols <- c(
+  "Diabetes_binary","HighBP","HighChol","CholCheck","Smoker",
+  "Stroke","HeartDiseaseorAttack","PhysActivity","Fruits","Veggies",
+  "HvyAlcoholConsump","AnyHealthcare","NoDocbcCost","DiffWalk"
+)
+diabetes <- diabetes %>%
+  mutate(across(all_of(binary_cols),
+                ~ factor(.x, levels = c(0,1), labels = c("No","Yes"))),
+         Sex       = factor(Sex, levels = c(0,1), labels = c("Female","Male")),
+         Education = factor(Education))  # optional relabel
+
+# 4) missingness check
+missing_summary <- diabetes %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to="var", values_to="n_missing")
+
+knitr::kable(missing_summary)
+```
+
+## Introduction
+
+The BRFSS 2015 dataset contains survey responses from over 400,000 U.S. adults on lifestyle and health indicators.\
+
+Here, **`Diabetes_binary`** (No/Yes) is our response; our ultimate goal is to build a predictive model via train/test split.\
+
+This EDA will:
+
+1.  Describe the data structure and check for missingness.
+
+2.  Justify and explore three chosen predictors.
+
+3.  Preview univariate and bivariate relationships to guide modeling.
+
+## Variable Selection & Justification
+
+I’ve chosen these three predictors:
+
+1.  **BMI** (Body‐Mass Index): a key risk factor for type 2 diabetes (CDC, 2020).
+2.  **PhysActivity** (Regular Physical Activity): exercise improves glucose metabolism.
+3.  **HighBP** (High Blood Pressure): often comorbid with metabolic disorders.
+
+## Univariate Summaries
+
+### 1. Diabetes Prevalence
+
+```{r}
+diabetes %>%
+  count(Diabetes_binary) %>%
+  mutate(pct = n/sum(n)) %>%
+  ggplot(aes(x = Diabetes_binary, y = pct, fill = Diabetes_binary)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(title = "Diabetes Prevalence in 2015", y = "Percent of Sample")
+```
+
+In this sample, about **85%** of respondents report **no** diabetes diagnosis in 2015, while roughly **15%** report **yes**. This substantial class imbalance (≈6:1) means that a naive “always‑no” classifier would already be 85% accurate—so accuracy alone won’t be very informative. That’s why we’ll use **log‑loss** and stratified sampling in our cross‑validation to ensure our model learns to distinguish the minority class effectively.
+
+### 2. BMI Distribution
+
+```{r}
+diabetes %>%
+  ggplot(aes(x = BMI)) +
+    geom_histogram(bins = 50, fill = "steelblue", color = "white") +
+    labs(title = "Distribution of BMI", x = "BMI")
+# Compute BMI summary
+bmi_stats <- diabetes %>%
+  summarise(
+    n        = n(),
+    mean_BMI = mean(BMI, na.rm = TRUE),
+    med_BMI  = median(BMI, na.rm = TRUE),
+    sd_BMI   = sd(BMI, na.rm = TRUE),
+    min_BMI  = min(BMI, na.rm = TRUE),
+    max_BMI  = max(BMI, na.rm = TRUE)
+  )
+
+bmi_stats
+
+```
+
+The BMI distribution is **right‑skewed**, with a mean of about 28.36 and a median of **27**. Most values cluster between **22 and 35**, indicating that a large portion of respondents are in the overweight (BMI 25–30) or obese (BMI \>30) categories. The long tail beyond 40 shows a smaller subset with very high BMI. Because higher BMI is a well–documented risk factor for type 2 diabetes, we expect this variable to be highly predictive in our models, and we may also consider transforming or binning it (e.g., normal vs. overweight vs. obese) if it improves model performance.
+
+### 3. Physical Activity
+
+```{r}
+diabetes %>%
+  count(PhysActivity) %>%
+  mutate(pct = n/sum(n)) %>%
+  ggplot(aes(x = PhysActivity, y = pct, fill = PhysActivity)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(title = "Regular Physical Activity", y = "Percent Reporting")
+diabetes %>%
+  count(PhysActivity) %>%
+  mutate(pct = scales::percent(n / sum(n))) 
+```
+
+**76%** of respondents report engaging in regular physical activity, while **24%** do not. Since exercise is known to improve insulin sensitivity and help regulate blood sugar, we might expect the inactive group to show a higher diabetes rate. In our subsequent bivariate plots, we’ll check whether the “No” group indeed has a larger proportion of diabetes cases, which would confirm that physical activity is a useful predictor in our models.
+
+### 4. High Blood Pressure
+
+```{r}
+diabetes %>%
+  count(HighBP) %>%
+  mutate(pct = n/sum(n)) %>%
+  ggplot(aes(x = HighBP, y = pct, fill = HighBP)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(title = "Self‑Reported Hypertension", y = "Percent Reporting")
+highbp_summary <- diabetes %>%
+  count(HighBP) %>%
+  mutate(pct = scales::percent(n / sum(n)))
+highbp_summary
+
+```
+
+**43%** of respondents report having high blood pressure, while **57%** do not. Because hypertension and diabetes often co‑occur via shared cardiovascular and metabolic pathways, we expect the “Yes” group to exhibit a higher rate of diabetes. In the next section’s bivariate plot, we’ll confirm whether the hypertensive subgroup does indeed show a disproportionately large diabetes prevalence, underscoring **HighBP** as a potentially strong predictor.
+
+## Bivariate Relationships
+
+### BMI vs Diabetes
+
+```{r}
+diabetes %>%
+  ggplot(aes(x = BMI, color = Diabetes_binary)) +
+    geom_freqpoly(binwidth = 1) +
+    labs(title = "BMI by Diabetes Status", y = "Count")
+diabetes %>%
+  group_by(Diabetes_binary) %>%
+  summarise(
+    mean_BMI   = mean(BMI, na.rm = TRUE),
+    median_BMI = median(BMI, na.rm = TRUE)
+  )
+
+```
+
+The blue line (Yes) is clearly shifted to the right compared to the salmon line (No), indicating that individuals with diabetes tend to have higher BMI values. For example, the mode of the non‑diabetic group is around a BMI of 25–26, whereas the diabetic group peaks closer to 27–28 and has a heavier tail extending into the obese range (BMI \> 30). This visual separation confirms that BMI is strongly associated with diabetes status and suggests it will be a valuable predictor in our models.
+
+### Physical Activity vs Diabetes
+
+```{r}
+diabetes %>%
+  ggplot(aes(x = PhysActivity, fill = Diabetes_binary)) +
+    geom_bar(position = "fill") +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(title = "Diabetes Rate by Activity", y = "Percent with Diabetes")
+diabetes %>%
+  group_by(PhysActivity) %>%
+  summarise(
+    diabetes_rate = mean(Diabetes_binary == "Yes") * 100
+  )
+
+```
+
+Among respondents who report **no** regular physical activity, about **21%** have diabetes, whereas only about **11%** of those who **do** exercise report diabetes. This nearly two‐fold difference strongly suggests that physical activity is protective and will be an important predictor in our modeling pipeline.
+
+### High BP vs Diabetes
+
+```{r}
+diabetes %>%
+  ggplot(aes(x = HighBP, fill = Diabetes_binary)) +
+    geom_bar(position = "fill") +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(title = "Diabetes Rate by Hypertension", y = "Percent with Diabetes")
+
+# Compute diabetes rate by hypertension status
+bp_diabetes_rate <- diabetes %>%
+  group_by(HighBP) %>%
+  summarise(
+    diabetes_rate = mean(Diabetes_binary == "Yes") * 100
+  )
+
+bp_diabetes_rate
+```
+
+Individuals without hypertension have only about a **6%** diabetes prevalence, whereas those with high blood pressure show roughly a **24%** prevalence. This near four‑fold increase strongly confirms that self‑reported hypertension is highly associated with diabetes. It also underscores why **HighBP** will be a key predictor in our modeling phase.
+
+[Click here for the Modeling Page](Modeling.html)

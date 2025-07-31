@@ -1,0 +1,257 @@
+---
+title: "Modeling"
+format: html
+editor: visual
+---
+
+```{r message = FALSE}
+# load packages
+library(tidyverse)
+library(rsample)      # for data splitting
+library(caret)        # for modeling & tuning
+library(yardstick)    # for logLoss metric
+library(here)
+library(tidymodels)
+
+# load & prepare data
+diabetes <- read_csv(here("data","diabetes_binary_health_indicators_BRFSS2015.csv")) %>%
+  mutate(
+    Diabetes_binary = factor(Diabetes_binary, levels = c(0,1), labels = c("No","Yes")),
+    PhysActivity    = factor(PhysActivity, levels = c(0,1), labels = c("No","Yes")),
+    HighBP          = factor(HighBP,     levels = c(0,1), labels = c("No","Yes")),
+    Sex             = factor(Sex,        levels = c(0,1), labels = c("Female","Male"))
+  )
+
+# reproducible split
+set.seed(123)
+split    <- initial_split(diabetes, prop = 0.7, strata = Diabetes_binary)
+train_df <- training(split)
+test_df  <- testing(split)
+
+# CV control using log‐loss
+ctrl <- trainControl(
+  method            = "cv",
+  number            = 5,
+  classProbs        = TRUE,
+  summaryFunction   = mnLogLoss,
+  savePredictions   = "final"
+)
+```
+
+## Introduction & Goals
+
+We aim to predict the binary outcome **`Diabetes_binary`** using three candidate algorithms:
+
+1.  **Logistic Regression** (three different feature sets)
+
+2.  **Classification Tree**
+
+3.  **Random Forest**
+
+    Model selection will be based on **5‑fold cross‑validated log‐loss**, and the final comparison will use the held‑out test set.
+
+## 1. Logistic Regression Models
+
+## Why logistic regression?
+
+A logistic regression models the log‑odds of a binary outcome as a linear combination of predictors. It’s interpretable and often performs well on structured data.
+
+### Candidate models
+
+```{r}
+# Define formulas 
+formulas <- list(
+  full      = Diabetes_binary ~ .,
+  reduced1  = Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  interact1 = Diabetes_binary ~ BMI * HighBP + PhysActivity + Sex
+)
+
+# Train each logistic model 
+lr_models <- map(formulas, ~ train(
+  .x,                    
+  data      = train_df,
+  method    = "glm",
+  family    = binomial(),
+  metric    = "logLoss",
+  trControl = ctrl
+))
+
+names(lr_models) <- names(formulas)
+
+# Summarize CV log‑loss for each 
+lr_results <- map_dfr(
+  names(lr_models),
+  ~ {
+    m <- lr_models[[.x]]
+    tibble(
+      model   = .x,
+      method  = m$method,
+      logLoss = min(m$results$logLoss)
+    )
+  }
+)
+
+print(lr_results)
+```
+
+**Best logistic model:**
+
+```{r}
+best_name <- lr_results$model[which.min(lr_results$logLoss)]
+best_lr   <- lr_models[[best_name]]
+
+cat("Best logistic model is:", best_name, "\n")
+print(best_lr)
+```
+
+The **full** model (using all predictors) has the lowest log‑loss (around **0.32**), so its probability estimates are the most accurate. We’ll use this full logistic model in our test‑set comparison against the tree and random forest.
+
+## 2. Classification Tree
+
+### What is a classification tree?
+
+A classification tree recursively splits the feature space into subsets that are increasingly “pure” in terms of the response. At each node it chooses the predictor and split‐point that minimize an impurity measure (e.g., Gini or entropy). Trees capture non‑linear relationships and interactions automatically, and the complexity parameter (cp) controls how aggressively the tree is pruned to avoid overfitting.
+
+```{r}
+# Grid of complexity parameters (cp) to try
+cp_grid <- expand.grid(cp = seq(0.0005, 0.02, length = 10))
+
+# Train the tree model
+tree_mod <- train(
+  Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  data      = train_df,
+  method    = "rpart",
+  metric    = "logLoss",
+  tuneGrid  = cp_grid,
+  trControl = ctrl
+)
+
+# Show best cp and its CV log‑loss
+tree_mod$bestTune
+min(tree_mod$results$logLoss)
+```
+
+-   **Optimal cp:** 0.02
+
+-   **5‑fold CV log‑loss:** ≈ 0.40
+
+The pruned tree (cp = 0.02) fits the data but is less accurate than our full logistic model (log‑loss 0.32 vs  0.40). We’ll still include this tuned tree in our final test‑set comparison alongside the logistic regression and random forest.
+
+## 3. Random Forest
+
+### What is a random forest?
+
+A random forest builds an ensemble of decision trees on bootstrap samples of the data, and at each split it considers only a random subset of predictors. Averaging many de‑correlated trees reduces variance and often improves generalization compared to a single tree, at the expense of interpretability.
+
+```{r}
+# Define the tuning grid for mtry (we have 4 predictors)
+rf_grid <- expand.grid(mtry = 1:4)
+
+# Train the random forest with 500 trees and 5-fold CV on log-loss
+set.seed(456)
+rf_mod <- train(
+  Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  data      = train_df,
+  method    = "rf",
+  metric    = "logLoss",
+  tuneGrid  = rf_grid,
+  trControl = ctrl,    # 5-fold CV, classProbs=TRUE, summaryFunction=mnLogLoss
+  ntree     = 50      # number of trees in the forest
+)
+
+# Inspect the best mtry and its CV log-loss
+rf_mod$bestTune
+min(rf_mod$results$logLoss)
+```
+
+```{r}
+# Define mtry grid for your 4 predictors
+rf_grid <- expand.grid(mtry = 1:4)
+
+# Train the random forest (100 trees for speed)
+set.seed(123)
+rf_mod <- train(
+  Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  data      = train_df,
+  method    = "rf",
+  metric    = "logLoss",
+  tuneGrid  = rf_grid,
+  trControl = ctrl,
+  ntree     = 100
+)
+
+# Inspect CV results
+print(rf_mod$results)
+cat("Best mtry:", rf_mod$bestTune$mtry, 
+    "→ CV log-loss =", 
+    min(rf_mod$results$logLoss), "\n")
+```
+
+As we increase `mtry` from 1 to 4, the CV log-loss steadily decrease, showing that using all four variables per split gives the lowest log-loss (around 4.37). However, these values remain far above the \~0.3–0.4 range of previous tree and logistic models, indicating the RF model is still underestimating diabetes probabilities.
+
+## 4. Final Model Selection
+
+Now we have three tuned models:
+
+1.  **Logistic Regression**: **best_lr**
+2.  **Classification Tree**: **tree_mod**
+3.  **Random Forest**: **rf_mod**
+
+Now that we have our three tuned models: **best_lr**, **tree_mod**, and **rf_mod**. We’ll compare them on the test set using log‑loss.
+
+```{r}
+library(dplyr)
+library(forcats)
+library(yardstick)
+library(knitr)
+
+# 1) Ensure “Yes” is the first (event) level
+test_df2 <- test_df %>%
+  mutate(Diabetes_binary = fct_relevel(Diabetes_binary, "Yes"))
+
+# 2) Extract P(Yes) from each model explicitly
+lr_probs     <- predict(best_lr,       test_df2, type = "prob")[, "Yes"]
+tree_probs   <- predict(tree_mod,      test_df2, type = "prob")[, "Yes"]
+forest_probs <- predict(rf_mod,        test_df2, type = "prob")[, "Yes"]
+
+# 3) Compute log-loss with mn_log_loss_vec()
+test_results <- tibble(
+  model   = c("Logistic", "Tree", "Forest"),
+  logLoss = c(
+    mn_log_loss_vec(test_df2$Diabetes_binary, lr_probs),
+    mn_log_loss_vec(test_df2$Diabetes_binary, tree_probs),
+    mn_log_loss_vec(test_df2$Diabetes_binary, forest_probs)
+  )
+)
+
+# 4) Display
+kable(test_results)
+
+```
+
+Save the best model
+
+```{r}
+# Identify the overall winner
+best_row   <- test_results %>% slice_min(logLoss, n = 1)
+best_model <- best_row$model
+
+# Save the chosen model
+dir.create(here("model"), showWarnings = FALSE)
+
+if (best_model == "Logistic") {
+  saveRDS(best_lr,   here("model","best_model.rds"))
+} else if (best_model == "Tree") {
+  saveRDS(tree_mod,  here("model","best_model.rds"))
+} else if (best_model == "Forest") {
+  saveRDS(rf_mod,    here("model","best_model.rds"))
+}
+
+# Print which was saved
+cat("Saved the", best_model, "model as model/best_model.rds\n")
+
+```
+
+## 5. Conclusion:
+
+On the held-out test set, the **logistic regression** achieves the lowest log-loss (≈ 0.32), meaning its probability estimates for diabetes are the most accurate. The **decision tree** comes next with a higher log-loss (≈ 0.40). The **random forest** is the worst (log-loss ≈ 4.63). In other words, the logistic model clearly outperforms both tree-based methods here, and the forest is badly underestimating diabetes risk.
