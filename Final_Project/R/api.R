@@ -14,11 +14,9 @@ library(here)
 #* @apiDescription Predict the probability of diabetes using the best model.
 
 # —— 1) Load the trained model ——
-# Adjust the path if you saved your model elsewhere
 model <- readRDS(here("model", "best_model.rds"))
 
 # —— 2) Load data to compute defaults ——
-# We only need this to calculate mean/mode defaults
 df <- read_csv(here("data","diabetes_binary_health_indicators_BRFSS2015.csv")) %>%
   mutate(
     Diabetes_binary = factor(Diabetes_binary, levels = c(0,1), labels = c("No","Yes")),
@@ -63,7 +61,7 @@ function(bmi = default_bmi,
 function() {
   list(
     author = "Hongjing Mao",
-    site   = "https://mhongji.github.io/Final_Project"
+    site   = "https://github.com/mhongji/Final_Project/tree/main/Final_Project/docs"
   )
 }
 
