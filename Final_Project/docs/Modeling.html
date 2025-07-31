@@ -141,30 +141,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(yardstick)    <span class="co"># for logLoss metric</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># load &amp; prepare data</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>diabetes <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">here</span>(<span class="st">"data"</span>,<span class="st">"diabetes_binary_health_indicators_BRFSS2015.csv"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Diabetes_binary =</span> <span class="fu">factor</span>(Diabetes_binary, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">PhysActivity    =</span> <span class="fu">factor</span>(PhysActivity, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">HighBP          =</span> <span class="fu">factor</span>(HighBP,     <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sex             =</span> <span class="fu">factor</span>(Sex,        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>))</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># reproducible split</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>split    <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(diabetes, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">strata =</span> Diabetes_binary)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>train_df <span class="ot">&lt;-</span> <span class="fu">training</span>(split)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>test_df  <span class="ot">&lt;-</span> <span class="fu">testing</span>(split)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"># CV control using log‐loss</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>ctrl <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">method            =</span> <span class="st">"cv"</span>,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">number            =</span> <span class="dv">5</span>,</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">classProbs        =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">summaryFunction   =</span> mnLogLoss,</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">savePredictions   =</span> <span class="st">"final"</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forcats)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># load &amp; prepare data</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>diabetes <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">here</span>(<span class="st">"data"</span>,<span class="st">"diabetes_binary_health_indicators_BRFSS2015.csv"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Diabetes_binary =</span> <span class="fu">factor</span>(Diabetes_binary, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">PhysActivity    =</span> <span class="fu">factor</span>(PhysActivity, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">HighBP          =</span> <span class="fu">factor</span>(HighBP,     <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sex             =</span> <span class="fu">factor</span>(Sex,        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>))</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># reproducible split</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>split    <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(diabetes, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">strata =</span> Diabetes_binary)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>train_df <span class="ot">&lt;-</span> <span class="fu">training</span>(split)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>test_df  <span class="ot">&lt;-</span> <span class="fu">testing</span>(split)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># CV control using log‐loss</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>ctrl <span class="ot">&lt;-</span> <span class="fu">trainControl</span>(</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">method            =</span> <span class="st">"cv"</span>,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">number            =</span> <span class="dv">5</span>,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">classProbs        =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">summaryFunction   =</span> mnLogLoss,</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">savePredictions   =</span> <span class="st">"final"</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="introduction-goals" class="level2">
 <h2 class="anchored" data-anchor-id="introduction-goals">Introduction &amp; Goals</h2>
@@ -187,8 +191,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define formulas </span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>formulas <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">full      =</span> Diabetes_binary <span class="sc">~</span> .,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">reduced1  =</span> Diabetes_binary <span class="sc">~</span> BMI <span class="sc">+</span> PhysActivity <span class="sc">+</span> HighBP <span class="sc">+</span> Sex,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">full      =</span> Diabetes_binary <span class="sc">~</span> BMI <span class="sc">+</span> PhysActivity <span class="sc">+</span> HighBP <span class="sc">+</span> Sex,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">reduced1  =</span> Diabetes_binary <span class="sc">~</span> BMI <span class="sc">+</span> PhysActivity <span class="sc">+</span> HighBP,</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">interact1 =</span> Diabetes_binary <span class="sc">~</span> BMI <span class="sc">*</span> HighBP <span class="sc">+</span> PhysActivity <span class="sc">+</span> Sex</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
@@ -222,7 +226,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 3 × 3
   model     method logLoss
   &lt;chr&gt;     &lt;chr&gt;    &lt;dbl&gt;
-1 full      glm      0.320
+1 full      glm      0.355
 2 reduced1  glm      0.355
 3 interact1 glm      0.355</code></pre>
 </div>
@@ -241,7 +245,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>Generalized Linear Model 
 
 177575 samples
-    21 predictor
+     4 predictor
      2 classes: 'No', 'Yes' 
 
 No pre-processing
@@ -249,8 +253,8 @@ Resampling: Cross-Validated (5 fold)
 Summary of sample sizes: 142060, 142060, 142060, 142060, 142060 
 Resampling results:
 
-  logLoss  
-  0.3200575</code></pre>
+  logLoss 
+  0.354523</code></pre>
 </div>
 </div>
 <p>The <strong>full</strong> model (using all predictors) has the lowest log‑loss (around <strong>0.32</strong>), so its probability estimates are the most accurate. We’ll use this full logistic model in our test‑set comparison against the tree and random forest.</p>
@@ -370,32 +374,27 @@ Resampling results:
 </ol>
 <p>Now that we have our three tuned models: <strong>best_lr</strong>, <strong>tree_mod</strong>, and <strong>rf_mod</strong>. We’ll compare them on the test set using log‑loss.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forcats)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(yardstick)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) Ensure “Yes” is the first (event) level</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>test_df2 <span class="ot">&lt;-</span> test_df <span class="sc">%&gt;%</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Diabetes_binary =</span> <span class="fu">fct_relevel</span>(Diabetes_binary, <span class="st">"Yes"</span>))</span>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) Ensure “Yes” is the first (event) level</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>test_df2 <span class="ot">&lt;-</span> test_df <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Diabetes_binary =</span> <span class="fu">fct_relevel</span>(Diabetes_binary, <span class="st">"Yes"</span>))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) Extract P(Yes) from each model explicitly</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>lr_probs     <span class="ot">&lt;-</span> <span class="fu">predict</span>(best_lr,       test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>tree_probs   <span class="ot">&lt;-</span> <span class="fu">predict</span>(tree_mod,      test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>forest_probs <span class="ot">&lt;-</span> <span class="fu">predict</span>(rf_mod,        test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) Extract P(Yes) from each model explicitly</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>lr_probs     <span class="ot">&lt;-</span> <span class="fu">predict</span>(best_lr,       test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>tree_probs   <span class="ot">&lt;-</span> <span class="fu">predict</span>(tree_mod,      test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>forest_probs <span class="ot">&lt;-</span> <span class="fu">predict</span>(rf_mod,        test_df2, <span class="at">type =</span> <span class="st">"prob"</span>)[, <span class="st">"Yes"</span>]</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 3) Compute log-loss with mn_log_loss_vec()</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>test_results <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">model   =</span> <span class="fu">c</span>(<span class="st">"Logistic"</span>, <span class="st">"Tree"</span>, <span class="st">"Forest"</span>),</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">logLoss =</span> <span class="fu">c</span>(</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, lr_probs),</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, tree_probs),</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, forest_probs)</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 4) Display</span></span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(test_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 3) Compute log-loss with mn_log_loss_vec()</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>test_results <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">model   =</span> <span class="fu">c</span>(<span class="st">"Logistic"</span>, <span class="st">"Tree"</span>, <span class="st">"Forest"</span>),</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">logLoss =</span> <span class="fu">c</span>(</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, lr_probs),</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, tree_probs),</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mn_log_loss_vec</span>(test_df2<span class="sc">$</span>Diabetes_binary, forest_probs)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 4) Display</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(test_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -407,7 +406,7 @@ Resampling results:
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Logistic</td>
-<td style="text-align: right;">0.3191078</td>
+<td style="text-align: right;">0.3543173</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Tree</td>
@@ -447,7 +446,7 @@ Resampling results:
 </section>
 <section id="conclusion" class="level2">
 <h2 class="anchored" data-anchor-id="conclusion">5. Conclusion:</h2>
-<p>On the held-out test set, the <strong>logistic regression</strong> achieves the lowest log-loss (≈ 0.32), meaning its probability estimates for diabetes are the most accurate. The <strong>decision tree</strong> comes next with a higher log-loss (≈ 0.40). The <strong>random forest</strong> is the worst (log-loss ≈ 4.63). In other words, the logistic model clearly outperforms both tree-based methods here, and the forest is badly underestimating diabetes risk.</p>
+<p>On the held-out test set, the <strong>logistic regression</strong> achieves the lowest log-loss (≈ 0.35), meaning its probability estimates for diabetes are the most accurate. The <strong>decision tree</strong> comes next with a higher log-loss (≈ 0.40). The <strong>random forest</strong> is the worst (log-loss ≈ 4.63). In other words, the logistic model clearly outperforms both tree-based methods here, and the forest is badly underestimating diabetes risk.</p>
 
 
 </section>

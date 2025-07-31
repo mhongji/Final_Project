@@ -12,6 +12,10 @@ library(caret)        # for modeling & tuning
 library(yardstick)    # for logLoss metric
 library(here)
 library(tidymodels)
+library(dplyr)
+library(forcats)
+library(knitr)
+
 
 # load & prepare data
 diabetes <- read_csv(here("data","diabetes_binary_health_indicators_BRFSS2015.csv")) %>%
@@ -61,8 +65,8 @@ A logistic regression models the log‑odds of a binary outcome as a linear comb
 ```{r}
 # Define formulas 
 formulas <- list(
-  full      = Diabetes_binary ~ .,
-  reduced1  = Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  full      = Diabetes_binary ~ BMI + PhysActivity + HighBP + Sex,
+  reduced1  = Diabetes_binary ~ BMI + PhysActivity + HighBP,
   interact1 = Diabetes_binary ~ BMI * HighBP + PhysActivity + Sex
 )
 
@@ -200,10 +204,6 @@ Now we have three tuned models:
 Now that we have our three tuned models: **best_lr**, **tree_mod**, and **rf_mod**. We’ll compare them on the test set using log‑loss.
 
 ```{r}
-library(dplyr)
-library(forcats)
-library(yardstick)
-library(knitr)
 
 # 1) Ensure “Yes” is the first (event) level
 test_df2 <- test_df %>%
@@ -254,4 +254,4 @@ cat("Saved the", best_model, "model as model/best_model.rds\n")
 
 ## 5. Conclusion:
 
-On the held-out test set, the **logistic regression** achieves the lowest log-loss (≈ 0.32), meaning its probability estimates for diabetes are the most accurate. The **decision tree** comes next with a higher log-loss (≈ 0.40). The **random forest** is the worst (log-loss ≈ 4.63). In other words, the logistic model clearly outperforms both tree-based methods here, and the forest is badly underestimating diabetes risk.
+On the held-out test set, the **logistic regression** achieves the lowest log-loss (≈ 0.35), meaning its probability estimates for diabetes are the most accurate. The **decision tree** comes next with a higher log-loss (≈ 0.40). The **random forest** is the worst (log-loss ≈ 4.63). In other words, the logistic model clearly outperforms both tree-based methods here, and the forest is badly underestimating diabetes risk.
